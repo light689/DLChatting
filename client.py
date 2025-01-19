@@ -21,6 +21,17 @@ class ChatClient:
         self.is_receiving_history = False # 是否正在接收历史消息
         self.last_sent_message = None  # 用于存储最后发送的消息
         
+        # 添加颜色主题
+        self.colors = {
+            'bg': '#f0f0f0',
+            'chat_bg': '#ffffff',
+            'entry_bg': '#ffffff',
+            'button_bg': '#4CAF50',
+            'button_fg': 'white',
+            'text_fg': '#333333'
+        }
+        self.root.configure(bg=self.colors['bg'])
+
         if TrustUserMode:
             self.username = os.getlogin() # 获取用户名
             self.create_chat_window() # 创建聊天窗口
@@ -31,12 +42,35 @@ class ChatClient:
     def create_login_window(self):
         self.login_window = tk.Toplevel(self.root) # 创建登录窗口
         self.login_window.title("登录") # 设置窗口标题
-        self.login_window.geometry("300x100") # 设置窗口大小
+        self.login_window.geometry("300x200") # 设置窗口大小
+        self.login_window.configure(bg=self.colors['bg'])
 
-        tk.Label(self.login_window, text="请输入用户名:").pack(pady=10) # 设置标签
-        self.username_entry = tk.Entry(self.login_window) # 创建输入框
-        self.username_entry.pack(pady=5) # 设置标签位置
-        self.username_entry.bind("<Return>", self.on_login) # 绑定回车事件
+        # 创建Frame来容纳登录组件
+        login_frame = tk.Frame(self.login_window, bg=self.colors['bg'])
+        login_frame.place(relx=0.5, rely=0.5, anchor='center')
+        
+        title_label = tk.Label(login_frame, text="DLChatting", 
+                             font=('Arial', 16, 'bold'),
+                             bg=self.colors['bg'],
+                             fg=self.colors['text_fg'])
+        title_label.pack(pady=10)
+        
+        tk.Label(login_frame, text="请输入用户名:",
+                bg=self.colors['bg'],
+                fg=self.colors['text_fg']).pack(pady=5)
+        
+        self.username_entry = tk.Entry(login_frame, width=25,
+                                     font=('Arial', 10),
+                                     bg=self.colors['entry_bg'])
+        self.username_entry.pack(pady=5)
+        
+        login_button = tk.Button(login_frame, text="登录",
+                               command=lambda: self.on_login(),
+                               bg=self.colors['button_bg'],
+                               fg=self.colors['button_fg'],
+                               width=10)
+        login_button.pack(pady=10)
+        self.username_entry.bind("<Return>", self.on_login)
 
     def on_login(self, event=None):
         self.username = self.username_entry.get() # 获取输入的用户名
@@ -50,19 +84,56 @@ class ChatClient:
             threading.Thread(target=self.run_event_loop).start() # 启动事件循环
 
     def create_chat_window(self):
-        self.root.title(f"欢迎使用DLChatting客户端 - {self.username}") # 设置窗口标题
-        self.root.geometry("400x500") # 设置窗口大小
+        self.root.title(f"DLChatting - {self.username}")
+        self.root.geometry("600x800")
+        self.root.configure(bg=self.colors['bg'])
 
-        self.chat_text = scrolledtext.ScrolledText(self.root, state='disabled') # 创建文本框
-        self.chat_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True) # 设置文本框位置
+        # 创建主Frame
+        main_frame = tk.Frame(self.root, bg=self.colors['bg'])
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        self.chat_text.tag_configure("green", foreground="green") # 设置文本颜色
-        self.chat_text.tag_configure("orange", foreground="orange") # 设置文本颜色
+        # 聊天显示区域
+        self.chat_text = scrolledtext.ScrolledText(
+            main_frame,
+            state='disabled',
+            font=('Arial', 10),
+            bg=self.colors['chat_bg'],
+            fg=self.colors['text_fg']
+        )
+        self.chat_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-        self.message_entry = tk.Text(self.root, height=3) # 创建文本框
-        self.message_entry.pack(padx=10, pady=10, fill=tk.X) # 设置文本框位置
-        self.message_entry.bind("<Return>", self.on_send_message) # 绑定回车事件
-        self.message_entry.bind("<Shift-Return>", self.on_newline) # 绑定换行事件
+        # 配置标签样式
+        self.chat_text.tag_configure("green", foreground="#2E7D32")
+        self.chat_text.tag_configure("orange", foreground="#ED6C02")
+
+        # 创建输入区域frame
+        input_frame = tk.Frame(main_frame, bg=self.colors['bg'])
+        input_frame.pack(fill=tk.X, pady=(0, 10))
+
+        # 消息输入框
+        self.message_entry = tk.Text(
+            input_frame,
+            height=3,
+            font=('Arial', 10),
+            bg=self.colors['entry_bg'],
+            fg=self.colors['text_fg']
+        )
+        self.message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 发送按钮
+        send_button = tk.Button(
+            input_frame,
+            text="发送",
+            command=lambda: self.on_send_message(None),
+            bg=self.colors['button_bg'],
+            fg=self.colors['button_fg'],
+            width=10
+        )
+        send_button.pack(side=tk.RIGHT, padx=(10, 0))
+
+        # 绑定事件
+        self.message_entry.bind("<Return>", self.on_send_message)
+        self.message_entry.bind("<Shift-Return>", self.on_newline)
 
     def on_send_message(self, event):
         message = self.message_entry.get("1.0", tk.END).strip() # 获取文本框内容
