@@ -1,7 +1,6 @@
 import tkinter as tk
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
-from ttkbootstrap.scrolled import ScrolledText
+import customtkinter as ctk
+from tkinter import messagebox
 import asyncio
 import websockets
 import threading
@@ -14,26 +13,26 @@ from plyer import notification
 NotifyOnMessage = True  # 默认开启消息通知
 TrustUserMode = False  # 不要开启这个，自用
 
+# 设置默认主题
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
 class ChatClient:
     def __init__(self, root):
         self.root = root
-        self.style = ttk.Style(theme='darkly')  # 使用MD深色主题
         self.username = None
         self.websocket = None
         self.loop = None
         self.is_receiving_history = False
         self.last_sent_message = None
         
-        # 修改颜色主题为MD风格
+        # CTk颜色主题
         self.colors = {
-            'primary': self.style.colors.primary,
-            'secondary': self.style.colors.secondary,
-            'success': self.style.colors.success,
-            'info': self.style.colors.info,
-            'warning': self.style.colors.warning,
-            'danger': self.style.colors.danger,
-            'bg': self.style.colors.light,
-            'fg': self.style.colors.dark
+            'primary': ["#3B8ED0", "#1F6AA5"],
+            'success': ["#2FA572", "#2A8C61"],
+            'warning': ["#E65100", "#CC4700"],
+            'text': ["#DCE4EE", "#DCE4EE"],
+            'entry': ["#343638", "#1D1E1E"]
         }
         
         if TrustUserMode:
@@ -44,47 +43,44 @@ class ChatClient:
             self.create_login_window()  # 创建登录窗口
 
     def create_login_window(self):
-        self.login_window = ttk.Toplevel(self.root)
+        self.login_window = ctk.CTkToplevel(self.root)
         self.login_window.title("登录")
         self.login_window.geometry("400x300")
 
         # 创建Frame
-        login_frame = ttk.Frame(self.login_window, padding=20)
-        login_frame.pack(expand=True)
+        login_frame = ctk.CTkFrame(self.login_window)
+        login_frame.pack(expand=True, padx=20, pady=20)
 
         # 标题
-        title_label = ttk.Label(
-            login_frame, 
+        title_label = ctk.CTkLabel(
+            login_frame,
             text="DLChatting",
-            font=('Helvetica', 24, 'bold'),
-            bootstyle="primary"
+            font=("Helvetica", 24, "bold")
         )
         title_label.pack(pady=20)
 
         # 用户名输入框
-        username_frame = ttk.Frame(login_frame)
-        username_frame.pack(fill=X, pady=10)
+        username_frame = ctk.CTkFrame(login_frame)
+        username_frame.pack(fill=tk.X, pady=10)
         
-        ttk.Label(
+        ctk.CTkLabel(
             username_frame,
-            text="用户名",
-            bootstyle="primary"
-        ).pack(anchor=W)
+            text="用户名"
+        ).pack(anchor=tk.W)
         
-        self.username_entry = ttk.Entry(
+        self.username_entry = ctk.CTkEntry(
             username_frame,
-            width=30,
-            bootstyle="primary"
+            width=250,
+            placeholder_text="请输入用户名"
         )
-        self.username_entry.pack(fill=X, pady=5)
+        self.username_entry.pack(fill=tk.X, pady=5)
 
         # 登录按钮
-        login_button = ttk.Button(
+        login_button = ctk.CTkButton(
             login_frame,
             text="登录",
             command=lambda: self.on_login(),
-            width=20,
-            bootstyle="primary"
+            width=200
         )
         login_button.pack(pady=20)
         
@@ -106,47 +102,41 @@ class ChatClient:
         self.root.geometry("800x600")
 
         # 主容器
-        main_container = ttk.Frame(self.root, padding=15)
-        main_container.pack(fill=BOTH, expand=YES)
+        main_container = ctk.CTkFrame(self.root)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
         # 聊天显示区域
-        self.chat_text = ScrolledText(
+        self.chat_text = ctk.CTkTextbox(
             main_container,
-            padding=10,
-            height=20,
-            autohide=True,
-            bootstyle="light",
-            wrap=WORD
+            wrap=tk.WORD,
+            height=400
         )
-        self.chat_text.pack(fill=BOTH, expand=YES, pady=(0, 10))
+        self.chat_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
-        # 使用tag配置而不是foreground
-        self.chat_text.tag_config("green", foreground=self.colors['success'])
-        self.chat_text.tag_config("orange", foreground=self.colors['warning'])
+        # 配置标签样式
+        self.chat_text.tag_config("green", foreground=self.colors['success'][0])
+        self.chat_text.tag_config("orange", foreground=self.colors['warning'][0])
 
         # 底部输入区域
-        input_container = ttk.Frame(main_container)
-        input_container.pack(fill=X, pady=(10, 0))
+        input_container = ctk.CTkFrame(main_container)
+        input_container.pack(fill=tk.X, pady=(10, 0))
 
         # 消息输入框
-        self.message_entry = ScrolledText(
+        self.message_entry = ctk.CTkTextbox(
             input_container,
-            height=3,
-            padding=10,
-            autohide=True,
-            bootstyle="light"
+            height=80,
+            wrap=tk.WORD
         )
-        self.message_entry.pack(side=LEFT, fill=X, expand=YES)
+        self.message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # 发送按钮
-        send_button = ttk.Button(
+        send_button = ctk.CTkButton(
             input_container,
             text="发送",
             command=lambda: self.on_send_message(None),
-            bootstyle="primary",
-            width=10
+            width=100
         )
-        send_button.pack(side=RIGHT, padx=(10, 0))
+        send_button.pack(side=tk.RIGHT, padx=(10, 0))
 
         # 绑定事件
         self.message_entry.bind("<Return>", self.on_send_message)
@@ -241,12 +231,11 @@ class ChatClient:
         self.insert_message(reconnect_message, "orange", notify=False)
         
         def ask_reconnect():
-            answer = ttk.dialogs.Messagebox.show_question(
+            answer = messagebox.askquestion(
                 title="连接错误",
-                message="掉线了，是否重新连接？",
-                alert=True
+                message="掉线了，是否重新连接？"
             )
-            if answer == "Yes":
+            if answer == "yes":
                 try:
                     self.chat_text.delete('1.0', tk.END)
                     threading.Thread(target=self.run_event_loop).start()
@@ -258,6 +247,6 @@ class ChatClient:
         self.root.after(0, ask_reconnect)
 
 if __name__ == "__main__":
-    root = ttk.Window(themename="darkly")
+    root = ctk.CTk()
     app = ChatClient(root)
     root.mainloop()
